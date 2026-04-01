@@ -4,11 +4,11 @@ let rooms = {};
 let waitingPlayer = null;
 
 module.exports = (io, socket) => {
-  // ini buat room kosong
   socket.on("createRoom", ({ size = 3 }) => {
     const roomId = Math.random().toString(36).substring(7);
+
     rooms[roomId] = {
-      players: [],
+      players: [socket.id],
       board: Array(size)
         .fill()
         .map(() => Array(size).fill(null)),
@@ -17,11 +17,13 @@ module.exports = (io, socket) => {
       size,
       mode: "multiplayer",
     };
+
+    socket.join(roomId);
+
     socket.emit("roomCreated", roomId);
     socket.emit("waitingPlayer");
   });
 
-  // ini gabung room
   socket.on("joinRoom", (roomId) => {
     const room = rooms[roomId];
     if (!room) return;
@@ -30,9 +32,12 @@ module.exports = (io, socket) => {
 
     room.players.push(socket.id);
     socket.join(roomId);
+
     io.to(roomId).emit("playerCount", room.players.length);
 
-    if (room.players.length === 1) socket.emit("waitingPlayer");
+    if (room.players.length === 1) {
+      socket.emit("waitingPlayer");
+    }
 
     if (room.players.length === 2) {
       io.to(roomId).emit("startGame", {
@@ -49,13 +54,15 @@ module.exports = (io, socket) => {
     }
   });
 
-  //ini matchmaking
   socket.on("findMatch", ({ size = 3 }) => {
     if (waitingPlayer && waitingPlayer.size === size) {
       const roomId = Math.random().toString(36).substring(7);
+
       rooms[roomId] = {
         players: [waitingPlayer.socket.id, socket.id],
-        board: Array(size * size).fill(null),
+        board: Array(size)
+          .fill()
+          .map(() => Array(size).fill(null)),
         turn: "X",
         winner: null,
         size,
@@ -78,19 +85,22 @@ module.exports = (io, socket) => {
       };
 
       socket.emit("startGame", payload);
-      waitingPlayer.emit("startGame", payload);
+      waitingPlayer.socket.emit("startGame", payload);
+
       waitingPlayer = null;
     } else {
       waitingPlayer = { socket, size };
     }
   });
 
-  //ini mulai vs AI
   socket.on("joinAI", ({ size = 3 }) => {
     const roomId = Math.random().toString(36).substring(7);
+
     rooms[roomId] = {
       players: [socket.id],
-      board: Array(size * size).fill(null),
+      board: Array(size)
+        .fill()
+        .map(() => Array(size).fill(null)),
       turn: "X",
       winner: null,
       size,
@@ -99,6 +109,7 @@ module.exports = (io, socket) => {
     };
 
     socket.join(roomId);
+
     socket.emit("startGame", {
       roomId,
       board: rooms[roomId].board,
@@ -109,16 +120,23 @@ module.exports = (io, socket) => {
     });
   });
 
-  // ini untuk giliran, untuk ai pakai openAI
   socket.on("makeMove", async ({ roomId, index }) => {
     const room = rooms[roomId];
     if (!room) return;
-    if (room.board[index] || room.winner) return;
+    if (room.winner) return;
 
-    // Validasi giliran multiplayer
+    const row = Math.floor(index / room.size);
+    const col = index % room.size;
+
+    if (row < 0 || row >= room.size || col < 0 || col >= room.size) return;
+
+    if (room.board[row][col] !== null) return;
+
     if (room.mode === "multiplayer") {
       if (room.players.length < 2) return;
+
       const playerIndex = room.players.indexOf(socket.id);
+
       if (
         (room.turn === "X" && playerIndex !== 0) ||
         (room.turn === "O" && playerIndex !== 1)
@@ -126,86 +144,102 @@ module.exports = (io, socket) => {
         return;
     }
 
-    // Validasi giliran vs AI
     if (room.mode === "ai") {
       if (room.turn !== "X") return;
       if (!room.players.includes(socket.id)) return;
     }
 
-    // ini giliran player
-    room.board[index] = room.turn;
-    const winnerAfterPlayer = checkWinner(room.board, room.size);
+    room.board[row][col] = room.turn;
 
-    if (winnerAfterPlayer) {
-      room.winner = winnerAfterPlayer;
+    let winner = checkWinner(room.board, room.size);
+
+    const isDraw = room.board.every((r) => r.every((c) => c !== null));
+
+    if (winner || isDraw) {
+      room.winner = winner || "draw";
+
       io.to(roomId).emit("updateGame", {
         board: room.board,
         turn: room.turn,
         winner: room.winner,
       });
+
       return;
     }
 
     room.turn = room.turn === "X" ? "O" : "X";
+
     io.to(roomId).emit("updateGame", {
       board: room.board,
       turn: room.turn,
       winner: null,
     });
 
-    // ini giliran AI
     if (room.mode === "ai" && room.turn === room.aiSymbol) {
       io.to(roomId).emit("aiThinking", { thinking: true });
 
       try {
         const { index: aiIndex, explanation } = await getAIMove(
-          [...room.board], // salin board agar tidak termutasi selama async
+          room.board.map((r) => [...r]),
           room.aiSymbol,
           room.size,
         );
 
-        // Guard: room bisa saja sudah dihapus selama menunggu respons OpenAI
-        if (!rooms[roomId] || room.winner) return;
+        const currentRoom = rooms[roomId];
+        if (!currentRoom || currentRoom.winner) return;
 
-        room.board[aiIndex] = room.aiSymbol;
-        const winnerAfterAI = checkWinner(room.board, room.size);
+        const aiRow = Math.floor(aiIndex / currentRoom.size);
+        const aiCol = aiIndex % currentRoom.size;
 
-        if (winnerAfterAI) {
-          room.winner = winnerAfterAI;
+        if (currentRoom.board[aiRow][aiCol] !== null) return;
+
+        currentRoom.board[aiRow][aiCol] = currentRoom.aiSymbol;
+
+        let aiWinner = checkWinner(currentRoom.board, currentRoom.size);
+        const isDrawAI = currentRoom.board.every((r) =>
+          r.every((c) => c !== null),
+        );
+
+        if (aiWinner || isDrawAI) {
+          currentRoom.winner = aiWinner || "draw";
         } else {
-          room.turn = "X";
+          currentRoom.turn = "X";
         }
 
         io.to(roomId).emit("updateGame", {
-          board: room.board,
-          turn: room.turn,
-          winner: room.winner,
+          board: currentRoom.board,
+          turn: currentRoom.turn,
+          winner: currentRoom.winner,
           aiMove: aiIndex,
           aiExplanation: explanation,
         });
       } catch (err) {
-        // Seharusnya tidak sampai sini karena aiService sudah handle error,
-        // tapi tetap ada guard untuk keamanan
-        console.error("[gameSocket] Unexpected AI error:", err.message);
+        console.error("[AI ERROR]", err.message);
       } finally {
         io.to(roomId).emit("aiThinking", { thinking: false });
       }
     }
   });
 
-  // ini waktu disconnect
   socket.on("disconnect", () => {
     for (const roomId in rooms) {
       const room = rooms[roomId];
+
       if (!room.players.includes(socket.id)) continue;
 
       room.players = room.players.filter((id) => id !== socket.id);
-      io.to(roomId).emit("playerCount", room.players.length);
-      io.to(roomId).emit("playerLeft");
 
-      if (room.players.length === 0) delete rooms[roomId];
+      if (room.players.length === 1) {
+        io.to(roomId).emit("waitingPlayer");
+      }
+
+      if (room.players.length === 0) {
+        delete rooms[roomId];
+      }
     }
 
-    if (waitingPlayer?.id === socket.id) waitingPlayer = null;
+    if (waitingPlayer?.socket.id === socket.id) {
+      waitingPlayer = null;
+    }
   });
 };
