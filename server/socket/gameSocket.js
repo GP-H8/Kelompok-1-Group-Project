@@ -87,7 +87,7 @@ module.exports = (io, socket) => {
     const roomId = Math.random().toString(36).substring(7);
     rooms[roomId] = {
       players: [socket.id],
-      board: Array(size * size).fill(null),
+      board: Array(size).fill().map(() => Array(size).fill(null)),
       turn: "X",
       winner: null,
       size,

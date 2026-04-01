@@ -11,6 +11,7 @@ module.exports = (io, socket) => {
             }
             return boardRow;
         });
+        turn = turn === "X" ? "O" : "X";
         io.emit("gameState", {turn, board: newBoard})
     })
 }
