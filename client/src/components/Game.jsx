@@ -37,7 +37,10 @@ export default function Game() {
   }
 
   useEffect(() => {
-    const socket = io(baseUrl);
+    const socket = io(baseUrl, {
+      transports: ["polling", "websocket"], // ← tambah ini
+      withCredentials: true, // ← dan ini
+    });
     socketRef.current = socket;
 
     socket.on("roomCreated", (id) => {
