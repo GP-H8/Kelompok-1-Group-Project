@@ -10,6 +10,13 @@ const cors = require("cors");
 const app = express();
 const server = http.createServer(app);
 
+app.use(
+  cors({
+    origin: "https://kelompok-1-group-project.vercel.app",
+    credentials: true,
+  }),
+);
+
 app.get("/", (req, res) => {
   res.send("Server is running");
 });
@@ -26,13 +33,6 @@ io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
   gameSocket(io, socket);
 });
-
-app.use(
-  cors({
-    origin: "https://kelompok-1-group-project.vercel.app",
-    credentials: true,
-  }),
-);
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
