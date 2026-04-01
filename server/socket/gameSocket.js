@@ -245,4 +245,8 @@ module.exports = (io, socket) => {
       waitingPlayer = null;
     }
   });
+
+  socket.on("connect_error", (err) => {
+    console.log("ERROR:", err.message);
+  });
 };
