@@ -7,7 +7,7 @@ module.exports = (io, socket) => {
 
     rooms[roomId] = {
       players: [],
-      board: Array(size * size).fill(null),
+      board: Array(size).fill().map(() => Array(size).fill(null)),
       turn: "X",
       winner: null,
       size,
@@ -52,7 +52,7 @@ module.exports = (io, socket) => {
 
       rooms[roomId] = {
         players: [waitingPlayer.id, socket.id],
-        board: Array(size * size).fill(null),
+        board: Array(size).fill().map(() => Array(size).fill(null)),
         turn: "X",
         winner: null,
         size,
