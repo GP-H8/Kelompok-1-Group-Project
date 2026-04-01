@@ -1,0 +1,1 @@
+export default baseUrl = "ws://localhost:3000"
