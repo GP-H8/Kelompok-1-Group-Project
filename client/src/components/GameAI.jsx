@@ -38,6 +38,16 @@ export default function GameAI() {
     if (!socketRef.current) return;
     if (winner) return;
 
+    if (turn !== "X") {
+      showToast("Please wait for your turn!");
+      return;
+    }
+
+    if (board[r][c]) {
+      showToast("This cell is already filled!", "#f59e0b");
+      return;
+    }
+
     const index = r * size + c;
     socketRef.current.emit("makeMove", { roomId, index });
   }
@@ -87,18 +97,18 @@ export default function GameAI() {
           isDark ? "bg-gray-700" : "bg-white"
         }`}
       >
-        <h2 className="text-2xl font-bold mb-2">🤖 VS AI</h2>
+        <h2 className='text-2xl font-bold mb-2'>🤖 VS AI</h2>
 
         {winner ? (
-          <h2 className="text-green-500 font-bold mb-4">🎉 Winner: {winner}</h2>
+          <h2 className='text-green-500 font-bold mb-4'>🎉 Winner: {winner}</h2>
         ) : (
-          <h3 className="mb-2">
+          <h3 className='mb-2'>
             Turn: <b>{turn}</b>
           </h3>
         )}
 
         {isThinking && (
-          <p className="text-blue-500 animate-pulse mb-4">
+          <p className='text-blue-500 animate-pulse mb-4'>
             🤖 AI is thinking...
           </p>
         )}
@@ -116,7 +126,7 @@ export default function GameAI() {
               <button
                 key={i}
                 onClick={() => handleMove(r, c)}
-                disabled={winner || turn !== "X" || isThinking}
+                disabled={winner}
                 className={`
                   w-full aspect-square
                   text-2xl font-bold
@@ -140,14 +150,14 @@ export default function GameAI() {
           })}
         </div>
 
-        <div className="flex justify-center gap-3 mt-6">
+        <div className='flex justify-center gap-3 mt-6'>
           <button
             onClick={() =>
               navigate("/", {
                 state: { message: "Successfully back to home!" },
               })
             }
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+            className='px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition'
           >
             Back to home
           </button>
@@ -155,7 +165,7 @@ export default function GameAI() {
           {winner && (
             <button
               onClick={resetGame}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+              className='px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition'
             >
               🔄 Play Again
             </button>
