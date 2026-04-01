@@ -1,33 +1,30 @@
-import { useLocation, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 import Toastify from "toastify-js";
-import "toastify-js/src/toastify.css";
-import { useEffect } from "react";
-
 export default function Home() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [roomInput, setRoomInput] = useState("");
   const { theme, toggleTheme } = useTheme();
 
   const isDark = theme === "dark";
 
-  // useEffect(() => {
-  //   if (location.state?.message) {
-  //     Toastify({
-  //       text: location.state.message,
-  //       duration: 2000,
-  //       gravity: "bottom",
-  //       position: "right",
-  //       style: {
-  //         background: "#22c55e",
-  //       },
-  //     }).showToast();
+  const handleJoinRoom = () => {
+    if (!roomInput) {
+      Toastify({
+        text: "Room ID tidak boleh kosong!",
+        duration: 2000,
+        gravity: "top",
+        position: "right",
+        style: {
+          background: "#ef4444",
+        },
+      }).showToast();
+      return;
+    }
 
-  //     navigate(".", { replace: true });
-  //   }
-  // }, []); // ini entah kenapa muncul pop-up nya selalu dua kali??
+    navigate(`/game?roomId=${roomInput}`);
+  };
 
   return (
     <div
@@ -40,7 +37,7 @@ export default function Home() {
           isDark ? "bg-gray-800" : "bg-white"
         }`}
       >
-        <h1 className='text-3xl font-bold text-center mb-6'>🎮 Tic Tac Toe</h1>
+        <h1 className="text-3xl font-bold text-center mb-6">🎮 Tic Tac Toe</h1>
 
         <button
           onClick={toggleTheme}
@@ -55,22 +52,22 @@ export default function Home() {
 
         <button
           onClick={() => navigate("/game-ai")}
-          className='w-full mb-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition'
+          className="w-full mb-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition"
         >
           🤖 Play vs AI
         </button>
 
         <button
           onClick={() => navigate("/game")}
-          className='w-full mb-6 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition'
+          className="w-full mb-6 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition"
         >
           👥 Create Room
         </button>
 
-        <div className='flex flex-col gap-3'>
+        <div className="flex flex-col gap-3">
           <input
-            type='text'
-            placeholder='Enter Room ID'
+            type="text"
+            placeholder="Enter Room ID"
             value={roomInput}
             onChange={(e) => setRoomInput(e.target.value)}
             className={`px-3 py-2 rounded-lg border outline-none transition ${
@@ -81,11 +78,8 @@ export default function Home() {
           />
 
           <button
-            onClick={() => {
-              if (!roomInput) return;
-              navigate(`/game?roomId=${roomInput}`);
-            }}
-            className='py-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition'
+            onClick={handleJoinRoom}
+            className="py-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition"
           >
             🚪 Join Room
           </button>
