@@ -53,7 +53,7 @@ export default function GameAI() {
   }
 
   useEffect(() => {
-    const socket = io(baseUrl, { transports: ["websocket"] });
+    const socket = io(baseUrl);
     socketRef.current = socket;
 
     socket.on("startGame", (data) => {
