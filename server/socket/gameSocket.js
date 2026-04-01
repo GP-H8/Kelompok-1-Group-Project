@@ -1,3 +1,5 @@
+const checkWinner = require("../game-logic/gameLogic");
+
 let rooms = {};
 let waitingPlayer = null;
 
@@ -6,14 +8,16 @@ module.exports = (io, socket) => {
     const roomId = Math.random().toString(36).substring(7);
 
     rooms[roomId] = {
-      players: [],
+      players: [socket.id],
       board: Array(size * size).fill(null),
       turn: "X",
       winner: null,
       size,
     };
 
+    socket.join(roomId); // 🔥 WAJIB
     socket.emit("roomCreated", roomId);
+    socket.emit("waitingPlayer");
   });
 
   socket.on("joinRoom", (roomId) => {
@@ -27,10 +31,6 @@ module.exports = (io, socket) => {
     socket.join(roomId);
 
     io.to(roomId).emit("playerCount", room.players.length);
-
-    if (room.players.length === 1) {
-      socket.emit("waitingPlayer");
-    }
 
     if (room.players.length === 2) {
       io.to(roomId).emit("startGame", {
@@ -47,11 +47,11 @@ module.exports = (io, socket) => {
   });
 
   socket.on("findMatch", ({ size = 3 }) => {
-    if (waitingPlayer) {
+    if (waitingPlayer && waitingPlayer.size === size) {
       const roomId = Math.random().toString(36).substring(7);
 
       rooms[roomId] = {
-        players: [waitingPlayer.id, socket.id],
+        players: [waitingPlayer.socket.id, socket.id],
         board: Array(size * size).fill(null),
         turn: "X",
         winner: null,
@@ -59,7 +59,7 @@ module.exports = (io, socket) => {
       };
 
       socket.join(roomId);
-      waitingPlayer.join(roomId);
+      waitingPlayer.socket.join(roomId);
 
       const payload = {
         roomId,
@@ -73,11 +73,11 @@ module.exports = (io, socket) => {
       };
 
       socket.emit("startGame", payload);
-      waitingPlayer.emit("startGame", payload);
+      waitingPlayer.socket.emit("startGame", payload);
 
       waitingPlayer = null;
     } else {
-      waitingPlayer = socket;
+      waitingPlayer = { socket, size };
     }
   });
 
@@ -99,12 +99,13 @@ module.exports = (io, socket) => {
 
     room.board[index] = room.turn;
 
-    const winLength = room.size;
-
-    const winner = checkWinner(room.board, room.size, winLength);
+    const winner = checkWinner(room.board);
+    const isDraw = room.board.every((cell) => cell !== null);
 
     if (winner) {
       room.winner = winner;
+    } else if (isDraw) {
+      room.winner = "draw";
     } else {
       room.turn = room.turn === "X" ? "O" : "X";
     }
@@ -124,7 +125,6 @@ module.exports = (io, socket) => {
         room.players = room.players.filter((id) => id !== socket.id);
 
         io.to(roomId).emit("playerCount", room.players.length);
-
         io.to(roomId).emit("playerLeft");
 
         if (room.players.length === 0) {
@@ -133,7 +133,7 @@ module.exports = (io, socket) => {
       }
     }
 
-    if (waitingPlayer?.id === socket.id) {
+    if (waitingPlayer?.socket?.id === socket.id) {
       waitingPlayer = null;
     }
   });
