@@ -1,1 +1,3 @@
-export default baseUrl = "ws://localhost:3000"
+const baseUrl = "ws://localhost:3000"
+
+export default baseUrl;

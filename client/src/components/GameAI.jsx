@@ -4,11 +4,13 @@ import baseUrl from '../constant/baseUrl';
 
 export default function Game() {
     const [currentTurn, setCurrentTurn] = useState("X");
-    const [gameBoard, setGameBoard] = useState(Array(size).fill().map(() => Array(size).fill(null)));
+    const [gameBoard, setGameBoard] = useState([[null, null, null], [null, null, null], [null, null, null]]);
     const [winner, setWinner] = useState(null);
     const [roomId, setRoomId] = useState(null);
     const [playerSymbol, setPlayerSymbol] = useState("X");
-    const [mode, setMode] = useState("multiplayer");
+    const [isAiThinking, setIsAiThinking] = useState(false);
+    const [mode, setMode] = useState("ai");
+    const socket = io(baseUrl);
 
     async function handleMove(row, column) {
         try {
@@ -43,12 +45,20 @@ export default function Game() {
             setWinner(gameWinner);
         };
 
+        const onAiThinking = ({ thinking }) => {
+            setIsAiThinking(thinking);
+        };
+
         socket.on("startGame", onStartGame);
         socket.on("updateGame", onUpdateGame);
+        socket.on("aiThinking", onAiThinking);
+
+        socket.emit("joinAI", { size: 3 });
 
         return () => {
             socket.off("startGame", onStartGame);
             socket.off("updateGame", onUpdateGame);
+            socket.off("aiThinking", onAiThinking);
             socket.disconnect();
         };
     }, [socket]);
@@ -57,11 +67,12 @@ export default function Game() {
     <div>
         {winner && <h2>Winner: {winner}</h2>}
         {!winner && <h3>Current Turn: {currentTurn}</h3>}
+        {mode === "ai" &&isAiThinking && <p>AI is thinking...</p>}
         <div className="flex flex-col">
             {gameBoard.map((row, rowIndex) => (
                 <div className="flex flex-row" key={rowIndex}>
                     {row.map((cell, columnIndex) => (
-                        <button className="border-gray-100 w-16 h-16" key={columnIndex} onClick={() => handleMove(rowIndex, columnIndex)}>{cell}</button>
+                        <button className="border w-16 h-16" key={columnIndex} onClick={() => handleMove(rowIndex, columnIndex)}>{cell}</button>
                     ))}
                 </div>
             ))}

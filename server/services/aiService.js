@@ -5,65 +5,32 @@ const client = new OpenAI({
 });
 
 function checkWinner(board, size) {
-  const winLength = size;
+  for (let row = 0; row < size; row++) {
+    const first = board[r][0];
+    if (first && board[row].every((cell) => cell === first)) return first;
+  }
 
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c <= size - winLength; c++) {
-      const first = board[r * size + c];
-      if (!first) continue;
-      if (
-        Array.from(
-          { length: winLength },
-          (_, i) => board[r * size + c + i],
-        ).every((v) => v === first)
-      )
-        return first;
+  for (let col = 0; col < size; col++) {
+    const first = board[0][col];
+    if (first && Array.from({ length: size }, (_, row) => board[row][col]).every((cell) => cell === first)) {
+      return first;
     }
   }
 
-  for (let c = 0; c < size; c++) {
-    for (let r = 0; r <= size - winLength; r++) {
-      const first = board[r * size + c];
-      if (!first) continue;
-      if (
-        Array.from(
-          { length: winLength },
-          (_, i) => board[(r + i) * size + c],
-        ).every((v) => v === first)
-      )
-        return first;
-    }
+  const diagFirst = board[0][0];
+  if (diagFirst && Array.from({ length: size }, (_, i) => board[i][i]).every((cell) => cell === diagFirst)) {
+    return diagFirst;
   }
 
-  for (let r = 0; r <= size - winLength; r++) {
-    for (let c = 0; c <= size - winLength; c++) {
-      const first = board[r * size + c];
-      if (!first) continue;
-      if (
-        Array.from(
-          { length: winLength },
-          (_, i) => board[(r + i) * size + (c + i)],
-        ).every((v) => v === first)
-      )
-        return first;
-    }
+  const antiDiagFirst = board[0][size - 1];
+  if (
+    antiDiagFirst &&
+    Array.from({ length: size }, (_, i) => board[i][size - 1 - i]).every((cell) => cell === antiDiagFirst)
+  ) {
+    return antiDiagFirst;
   }
 
-  for (let r = 0; r <= size - winLength; r++) {
-    for (let c = winLength - 1; c < size; c++) {
-      const first = board[r * size + c];
-      if (!first) continue;
-      if (
-        Array.from(
-          { length: winLength },
-          (_, i) => board[(r + i) * size + (c - i)],
-        ).every((v) => v === first)
-      )
-        return first;
-    }
-  }
-
-  if (board.every((cell) => cell !== null)) return "draw";
+  if (board.every((row) => row.every((cell) => cell !== null))) return "draw";
   return null;
 }
 
@@ -71,35 +38,40 @@ function checkWinner(board, size) {
 
 function fallbackMove(board, aiSymbol, size) {
   const humanSymbol = aiSymbol === "X" ? "O" : "X";
-  const empty = board
-    .map((v, i) => (v === null ? i : -1))
-    .filter((i) => i !== -1);
+  const empty = [];
+
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (board[r][c] === null) empty.push({ row: r, col: c, index: r * size + c });
+    }
+  }
 
   // 1. Menang langsung
-  for (const i of empty) {
-    const copy = [...board];
-    copy[i] = aiSymbol;
-    if (checkWinner(copy, size) === aiSymbol) return i;
+  for (const move of empty) {
+    const copy = board.map((row) => [...row]);
+    copy[move.row][move.col] = aiSymbol;
+    if (checkWinner(copy, size) === aiSymbol) return move.index;
   }
 
   // 2. Blokir kemenangan lawan
-  for (const i of empty) {
-    const copy = [...board];
-    copy[i] = humanSymbol;
-    if (checkWinner(copy, size) === humanSymbol) return i;
+  for (const move of empty) {
+    const copy = board.map((row) => [...row]);
+    copy[move.row][move.col] = humanSymbol;
+    if (checkWinner(copy, size) === humanSymbol) return move.index;
   }
 
   // 3. Tengah
-  const center = Math.floor((size * size) / 2);
-  if (empty.includes(center)) return center;
+  const center = Math.floor(size / 2);
+  const centerMove = empty.find((move) => move.row === center && move.col === center);
+  if (centerMove) return centerMove.index;
 
   // 4. Sudut
-  const corners = [0, size - 1, size * (size - 1), size * size - 1];
-  const freeCorner = corners.find((i) => empty.includes(i));
-  if (freeCorner !== undefined) return freeCorner;
+  const cornerIndexes = [0, size - 1, size * (size - 1), size * size - 1];
+  const freeCorner = empty.find((move) => cornerIndexes.includes(move.index));
+  if (freeCorner) return freeCorner.index;
 
   // 5. Acak dari yang tersisa
-  return empty[Math.floor(Math.random() * empty.length)];
+  return empty[Math.floor(Math.random() * empty.length)].index;
 }
 
 function formatBoardForPrompt(board, size) {
@@ -108,7 +80,7 @@ function formatBoardForPrompt(board, size) {
     const row = [];
     for (let c = 0; c < size; c++) {
       const i = r * size + c;
-      row.push(board[i] ?? String(i + 1)); // tampilkan nomor kalau kosong
+      row.push(board[r][c] ?? String(i + 1)); // tampilkan nomor kalau kosong
     }
     result += row.join(" | ");
     if (r < size - 1) result += "\n" + "-".repeat(size * 4 - 3) + "\n";
@@ -118,9 +90,12 @@ function formatBoardForPrompt(board, size) {
 
 async function getAIMove(board, aiSymbol, size) {
   const humanSymbol = aiSymbol === "X" ? "O" : "X";
-  const emptyCells = board
-    .map((v, i) => (v === null ? i + 1 : null)) // 1-based untuk prompt
-    .filter(Boolean);
+  const emptyCells = [];
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (board[r][c] === null) emptyCells.push(r * size + c + 1);
+    }
+  }
   const boardText = formatBoardForPrompt(board, size);
 
   const prompt = `Kamu adalah AI pemain Tic Tac Toe yang bermain sebagai "${aiSymbol}".
@@ -169,7 +144,7 @@ Balas HANYA dengan format JSON berikut, tanpa teks lain:
       !Number.isInteger(indexOneBased) ||
       indexOneBased < 1 ||
       indexOneBased > size * size ||
-      board[indexZeroBased] !== null // kotak sudah terisi
+      board[Math.floor(indexZeroBased / size)][indexZeroBased % size] !== null // kotak sudah terisi
     ) {
       console.warn(
         "[AI] OpenAI memberi index tidak valid:",
