@@ -1,10 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import baseUrl from "../constant/baseUrl";
+import { useNavigate } from "react-router";
+import Toastify from "toastify-js";
+import "toastify-js/src/toastify.css";
+import { useTheme } from "../context/ThemeContext";
 
 export default function GameAI() {
+  const navigate = useNavigate();
   const socketRef = useRef(null);
   const size = 3;
+
+  const { theme, toggleTheme } = useTheme();
+
+  const isDark = theme === "dark";
 
   const [board, setBoard] = useState(
     Array(size)
@@ -19,8 +28,32 @@ export default function GameAI() {
   function handleMove(r, c) {
     if (!socketRef.current) return;
     if (winner) return;
-    if (turn !== "X") return;
-    if (board[r][c]) return;
+    if (turn !== "X") {
+      Toastify({
+        text: "Please wait for your turn!",
+        duration: 2000,
+        close: true,
+        gravity: "bottom",
+        position: "right",
+        style: {
+          background: "#FF0000",
+        },
+      }).showToast();
+      return;
+    }
+    if (board[r][c]) {
+      Toastify({
+        text: "This cell is already filled!",
+        duration: 2000,
+        close: true,
+        gravity: "bottom",
+        position: "right",
+        style: {
+          background: "#f59e0b",
+        },
+      }).showToast();
+      return;
+    }
 
     const index = r * size + c;
     socketRef.current.emit("makeMove", { roomId, index });
@@ -57,25 +90,29 @@ export default function GameAI() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white p-8 rounded-2xl shadow-lg text-center w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-2">🤖 VS AI</h2>
+    <div
+      className={`min-h-screen flex items-center justify-center bg-gray-100 px-4 ${
+        isDark ? "bg-gray-900 text-white" : "bg-gray-100 text-black"
+      }`}
+    >
+      <div className='bg-white p-8 rounded-2xl shadow-lg text-center w-full max-w-md'>
+        <h2 className='text-2xl font-bold mb-2'>🤖 VS AI</h2>
 
         {winner ? (
-          <h2 className="text-green-500 font-bold mb-4">🎉 Winner: {winner}</h2>
+          <h2 className='text-green-500 font-bold mb-4'>🎉 Winner: {winner}</h2>
         ) : (
-          <h3 className="mb-2">
+          <h3 className='mb-2'>
             Turn: <b>{turn}</b>
           </h3>
         )}
 
         {isThinking && (
-          <p className="text-blue-500 animate-pulse mb-4">
+          <p className='text-blue-500 animate-pulse mb-4'>
             🤖 AI is thinking...
           </p>
         )}
 
-        <div className="grid grid-cols-3 mt-4 border-4 border-black">
+        <div className='grid grid-cols-3 mt-4 border-4 border-black'>
           {board.flat().map((cell, i) => {
             const r = Math.floor(i / size);
             const c = i % size;
@@ -84,7 +121,7 @@ export default function GameAI() {
               <button
                 key={i}
                 onClick={() => handleMove(r, c)}
-                disabled={!!cell || winner || turn !== "X"}
+                disabled={winner}
                 className={`
   w-full aspect-square
   text-2xl font-bold
@@ -102,14 +139,27 @@ export default function GameAI() {
           })}
         </div>
 
-        {winner && (
+        <div className='flex justify-center gap-3 mt-6'>
           <button
-            onClick={resetGame}
-            className="mt-6 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+            onClick={() =>
+              navigate("/", {
+                state: { message: "Successfully back to home!" },
+              })
+            }
+            className='mt-6 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition'
           >
-            🔄 Play Again
+            Back to home
           </button>
-        )}
+
+          {winner && (
+            <button
+              onClick={resetGame}
+              className='mt-6 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition'
+            >
+              🔄 Play Again
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

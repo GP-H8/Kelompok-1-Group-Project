@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import baseUrl from "../constant/baseUrl";
 
 export default function Game() {
   const socketRef = useRef(null);
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const size = 3;
   const urlRoomId = searchParams.get("roomId");
@@ -81,17 +82,17 @@ export default function Game() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white p-8 rounded-2xl shadow-lg text-center w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-2">👥 Multiplayer</h2>
+    <div className='min-h-screen flex items-center justify-center bg-gray-100 px-4'>
+      <div className='bg-white p-8 rounded-2xl shadow-lg text-center w-full max-w-md'>
+        <h2 className='text-2xl font-bold mb-2'>👥 Multiplayer</h2>
 
         {roomId && (
-          <div className="flex items-center justify-center gap-2 text-sm mb-2">
-            <span className="text-gray-500">Room:</span>
+          <div className='flex items-center justify-center gap-2 text-sm mb-2'>
+            <span className='text-gray-500'>Room:</span>
             <b>{roomId}</b>
             <button
               onClick={copyRoomId}
-              className="text-blue-500 hover:underline text-xs"
+              className='text-blue-500 hover:underline text-xs'
             >
               copy
             </button>
@@ -99,25 +100,25 @@ export default function Game() {
         )}
 
         {playerSymbol && (
-          <p className="text-sm mb-2">
+          <p className='text-sm mb-2'>
             You are: <b>{playerSymbol}</b>
           </p>
         )}
 
         {isWaiting ? (
-          <h3 className="text-yellow-500 mb-4 animate-pulse">
+          <h3 className='text-yellow-500 mb-4 animate-pulse'>
             Waiting for opponent...
           </h3>
         ) : winner ? (
-          <h2 className="text-green-500 font-bold mb-4">🎉 Winner: {winner}</h2>
+          <h2 className='text-green-500 font-bold mb-4'>🎉 Winner: {winner}</h2>
         ) : (
-          <h3 className="mb-4">
+          <h3 className='mb-4'>
             Turn: <b>{turn}</b>
           </h3>
         )}
 
         {!isWaiting && (
-          <div className="grid grid-cols-3 mt-4 w-fit mx-auto border-4 border-black">
+          <div className='grid grid-cols-3 mt-4 w-fit mx-auto border-4 border-black'>
             {board.flat().map((cell, i) => {
               const r = Math.floor(i / size);
               const c = i % size;
@@ -145,6 +146,17 @@ export default function Game() {
             })}
           </div>
         )}
+
+        <button
+          onClick={() =>
+            navigate("/", {
+              state: { message: "Successfully back to home!" },
+            })
+          }
+          className='mt-6 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition'
+        >
+          Back to home
+        </button>
       </div>
     </div>
   );
