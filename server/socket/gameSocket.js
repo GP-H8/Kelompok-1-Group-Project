@@ -26,7 +26,10 @@ module.exports = (io, socket) => {
 
   socket.on("joinRoom", (roomId) => {
     const room = rooms[roomId];
-    if (!room) return;
+    if (!room) {
+      socket.emit("roomNotFound");
+      return;
+    }
     if (room.players.length >= 2) return;
     if (room.players.includes(socket.id)) return;
 

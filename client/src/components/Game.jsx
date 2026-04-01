@@ -52,6 +52,19 @@ export default function Game() {
       setIsWaiting(true);
       setWinner(null);
     });
+    socket.on("roomNotFound", () => {
+      Toastify({
+        text: "Room tidak ditemukan!",
+        duration: 2000,
+        gravity: "top",
+        position: "right",
+        style: {
+          background: "#ef4444",
+        },
+      }).showToast();
+
+      navigate("/");
+    });
 
     socket.on("startGame", (data) => {
       setBoard(data.board);
