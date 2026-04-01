@@ -52,7 +52,7 @@ module.exports = (io, socket) => {
       const roomId = Math.random().toString(36).substring(7);
       rooms[roomId] = {
         players: [waitingPlayer.id, socket.id],
-        board: Array(size * size).fill(null),
+        board: Array(size).fill().map(() => Array(size).fill(null)),
         turn: "X",
         winner: null,
         size,
@@ -87,7 +87,7 @@ module.exports = (io, socket) => {
     const roomId = Math.random().toString(36).substring(7);
     rooms[roomId] = {
       players: [socket.id],
-      board: Array(size * size).fill(null),
+      board: Array(size).fill().map(() => Array(size).fill(null)),
       turn: "X",
       winner: null,
       size,
@@ -107,10 +107,26 @@ module.exports = (io, socket) => {
   });
 
   // ini untuk giliran, untuk ai pakai openAI
-  socket.on("makeMove", async ({ roomId, index }) => {
+  socket.on("makeMove", async ({ roomId, index, row, column }) => {
     const room = rooms[roomId];
     if (!room) return;
-    if (room.board[index] || room.winner) return;
+    if (room.winner) return;
+
+    const moveRow = Number.isInteger(row) ? row : Math.floor(index / room.size);
+    const moveCol = Number.isInteger(column) ? column : index % room.size;
+
+    if (
+      !Number.isInteger(moveRow) ||
+      !Number.isInteger(moveCol) ||
+      moveRow < 0 ||
+      moveRow >= room.size ||
+      moveCol < 0 ||
+      moveCol >= room.size
+    ) {
+      return;
+    }
+
+    if (room.board[moveRow][moveCol] !== null) return;
 
     // Validasi giliran multiplayer
     if (room.mode === "multiplayer") {
@@ -130,7 +146,7 @@ module.exports = (io, socket) => {
     }
 
     // ini giliran player
-    room.board[index] = room.turn;
+    room.board[moveRow][moveCol] = room.turn;
     const winnerAfterPlayer = checkWinner(room.board, room.size);
 
     if (winnerAfterPlayer) {
@@ -156,7 +172,7 @@ module.exports = (io, socket) => {
 
       try {
         const { index: aiIndex, explanation } = await getAIMove(
-          [...room.board], // salin board agar tidak termutasi selama async
+          room.board.map((boardRow) => [...boardRow]), // salin board agar tidak termutasi selama async
           room.aiSymbol,
           room.size,
         );
@@ -164,7 +180,9 @@ module.exports = (io, socket) => {
         // Guard: room bisa saja sudah dihapus selama menunggu respons OpenAI
         if (!rooms[roomId] || room.winner) return;
 
-        room.board[aiIndex] = room.aiSymbol;
+        const aiRow = Math.floor(aiIndex / room.size);
+        const aiCol = aiIndex % room.size;
+        room.board[aiRow][aiCol] = room.aiSymbol;
         const winnerAfterAI = checkWinner(room.board, room.size);
 
         if (winnerAfterAI) {
