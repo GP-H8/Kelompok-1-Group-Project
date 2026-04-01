@@ -10,6 +10,9 @@ export default function GameAI() {
   const navigate = useNavigate();
   const socketRef = useRef(null);
   const size = 3;
+  // const { theme } = useTheme();
+
+  // const isDark = theme === "dark";
 
   const { theme, toggleTheme } = useTheme();
 
@@ -91,11 +94,13 @@ export default function GameAI() {
 
   return (
     <div
-      className={`min-h-screen flex items-center justify-center bg-gray-100 px-4 ${
-        isDark ? "bg-gray-900 text-white" : "bg-gray-100 text-black"
-      }`}
+      className={`min-h-screen flex items-center justify-center
+      ${isDark ? "bg-gray-900" : "bg-gray-100"} px-4`}
     >
-      <div className='bg-white p-8 rounded-2xl shadow-lg text-center w-full max-w-md'>
+      <div
+        className={`p-8 rounded-2xl shadow-lg text-center w-full max-w-md
+        ${isDark ? "bg-gray-700" : "bg-white"}`}
+      >
         <h2 className='text-2xl font-bold mb-2'>🤖 VS AI</h2>
 
         {winner ? (
@@ -112,7 +117,10 @@ export default function GameAI() {
           </p>
         )}
 
-        <div className='grid grid-cols-3 mt-4 border-4 border-black'>
+        <div
+          className={`grid grid-cols-3 mt-4 border-4
+          ${isDark ? "border-gray-500" : "border-black"}`}
+        >
           {board.flat().map((cell, i) => {
             const r = Math.floor(i / size);
             const c = i % size;
@@ -128,9 +136,9 @@ export default function GameAI() {
   flex items-center justify-center
   leading-none
 
-  ${cell ? "bg-gray-200" : "hover:bg-blue-100"}
-
-  border border-black
+  ${cell ? (isDark ? "bg-gray-600" : "bg-gray-200") : isDark ? "hover:bg-blue-500" : "hover:bg-blue-100"}
+  ${isDark ? "border border-gray-500" : "border border-black"}
+  
 `}
               >
                 {cell}
