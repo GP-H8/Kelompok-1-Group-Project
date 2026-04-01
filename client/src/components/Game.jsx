@@ -37,7 +37,7 @@ export default function Game() {
   }
 
   useEffect(() => {
-    const socket = io(baseUrl, { transports: ["websocket"] });
+    const socket = io(baseUrl);
     socketRef.current = socket;
 
     socket.on("roomCreated", (id) => {
@@ -120,15 +120,15 @@ export default function Game() {
         className={`p-8 rounded-2xl shadow-lg text-center w-full max-w-md
         ${isDark ? "bg-gray-700" : "bg-white"}`}
       >
-        <h2 className="text-2xl font-bold mb-2">👥 Multiplayer</h2>
+        <h2 className='text-2xl font-bold mb-2'>👥 Multiplayer</h2>
 
         {roomId && (
-          <div className="flex items-center justify-center gap-2 text-sm mb-2">
-            <span className="text-gray-500">Room:</span>
+          <div className='flex items-center justify-center gap-2 text-sm mb-2'>
+            <span className='text-gray-500'>Room:</span>
             <b>{roomId}</b>
             <button
               onClick={copyRoomId}
-              className="text-blue-500 hover:underline text-xs"
+              className='text-blue-500 hover:underline text-xs'
             >
               copy
             </button>
@@ -136,19 +136,19 @@ export default function Game() {
         )}
 
         {playerSymbol && (
-          <p className="text-sm mb-2">
+          <p className='text-sm mb-2'>
             You are: <b>{playerSymbol}</b>
           </p>
         )}
 
         {isWaiting ? (
-          <h3 className="text-yellow-500 mb-4 animate-pulse">
+          <h3 className='text-yellow-500 mb-4 animate-pulse'>
             Waiting for opponent...
           </h3>
         ) : winner ? (
-          <h2 className="text-green-500 font-bold mb-4">🎉 Winner: {winner}</h2>
+          <h2 className='text-green-500 font-bold mb-4'>🎉 Winner: {winner}</h2>
         ) : (
-          <h3 className="mb-4">
+          <h3 className='mb-4'>
             Turn: <b>{turn}</b>
           </h3>
         )}
@@ -192,7 +192,7 @@ export default function Game() {
               state: { message: "Successfully back to home!" },
             })
           }
-          className="mt-6 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+          className='mt-6 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition'
         >
           Back to home
         </button>
