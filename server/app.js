@@ -12,7 +12,7 @@ const server = http.createServer(app);
 
 app.use(
   cors({
-    origin: "https://kelompok-1-group-project.vercel.app",
+    origin: "kelompok-1-group-project-ycgq.vercel.app",
     credentials: true,
   }),
 );
@@ -23,7 +23,7 @@ app.get("/", (req, res) => {
 
 const io = new Server(server, {
   cors: {
-    origin: "https://kelompok-1-group-project.vercel.app",
+    origin: "kelompok-1-group-project-ycgq.vercel.app",
     methods: ["GET", "POST"],
     credentials: true,
   },
