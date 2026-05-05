@@ -10,9 +10,14 @@ const cors = require("cors");
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://kelompok-1-group-project-ycgq.vercel.app",
+];
+
 app.use(
   cors({
-    origin: "kelompok-1-group-project-ycgq.vercel.app",
+    origin: allowedOrigins,
     credentials: true,
   }),
 );
@@ -23,7 +28,7 @@ app.get("/", (req, res) => {
 
 const io = new Server(server, {
   cors: {
-    origin: "kelompok-1-group-project-ycgq.vercel.app",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
